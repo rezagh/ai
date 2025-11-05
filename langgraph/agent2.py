@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from langchain.tools import tool, ToolRuntime
 from langchain.chat_models import init_chat_model
 from langgraph.checkpoint.memory import InMemorySaver
+from langchain.agents import AgentState
+from langchain.agents.middleware import AgentMiddleware
 
 
 SYSTEM_PROMPT = """You are an expert weather forecaster, who speaks in puns.
@@ -52,8 +54,20 @@ class ResponseFormat:
     weather_conditions: str | None = None
 
 
+class CustomState(AgentState):
+    user_preferences: dict
 
-#Add memory to your agent to maintain state across interactions. This allows the agent to remember previous conversations and context.
+class CustomMiddleware(AgentMiddleware):
+    state_schema = CustomState
+    tools = [tool1, tool2]
+
+    def before_model(self, state: CustomState, runtime) -> dict[str, Any] | None:
+        pass
+
+
+
+#Add memory to your agent to maintain state across interactions. 
+# This allows the agent to remember previous conversations and context.
 checkpointer = InMemorySaver()
 
 agent = create_agent(
@@ -62,8 +76,12 @@ agent = create_agent(
     tools=[get_user_location, get_weather_for_location],
     context_schema=Context,
     response_format=ResponseFormat,
-    checkpointer=checkpointer
+    checkpointer=checkpointer,
+    middleware=[CustomMiddleware()]
+
 )
+
+
 
 # `thread_id` is a unique identifier for a given conversation.
 config = {"configurable": {"thread_id": "1"}}
@@ -87,6 +105,13 @@ response = agent.invoke(
     config=config,
     context=Context(user_id="1")
 )
+
+
+# The agent can now track additional state beyond messages
+result = agent.invoke({
+    "messages": [{"role": "user", "content": "I prefer technical explanations"}],
+    "user_preferences": {"style": "technical", "verbosity": "detailed"},
+})
 
 print(response['structured_response'])
 # ResponseFormat(

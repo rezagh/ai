@@ -1,6 +1,6 @@
-pyenv install 3.11.10
-pyenv local 3.11.10
-
+#pyenv is overkill for this. removed totally
+#pyenv install 3.11.10
+#pyenv local 3.11.10
 #this will create a .python-version file
 
 
